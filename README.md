@@ -13,7 +13,6 @@ This means that if you want Traefik to handle traffic on custom TCP/UDP ports, y
 
 These scripts make this process easier: just define your custom ports in .env, run the generator, and it will automatically generate the necessary Docker-compose port mappings, Traefik entrypoints, routers, and service labels. No manual editing of docker-compose.yml is required.
 
-
 ## Commands
 
 Rebuild `docker-compose.yml`:
@@ -120,3 +119,6 @@ docker network create proxy
 
 ## Support
 For any questions, get support in ["The Megabyte Order"](https://discord.gg/NVtdTka8ZT) Discord server.
+
+## The Licence
+This script is distributed under the [MIT License](https://github.com/keshon/traefik-docker-compose-generator/blob/main/LICENSE).
