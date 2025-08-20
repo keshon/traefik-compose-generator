@@ -33,13 +33,19 @@ Generate auth and write it into `.env`:
 1. Copy `.env.example` to `.env` and set values:
 
    ```ini
-   CUSTOM_PORTS=51227,58526,31223
    TZ=Europe/Amsterdam
+   LOG_LEVEL=WARN
    LETSENCRYPT_EMAIL=you@example.com
 
+   CUSTOM_PORTS=51227,58526,31223
+
+   # Alternative format:
+   # CUSTOM_PORTS=51227,58526,31223
+
    # Basic auth (leave empty to auto-generate)
-   LOGIN=
-   PASSWORD_HASH=
+   DASHBOARD_HOSTNAME=traefik.domain.tld
+   DASHBOARD_LOGIN=
+   DASHBOARD_PASSWORD_HASH=
    ```
 
 2. Run the generator:
