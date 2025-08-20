@@ -120,5 +120,5 @@ docker network create proxy
 ## Support
 For any questions, get support in ["The Megabyte Order"](https://discord.gg/NVtdTka8ZT) Discord server.
 
-## The Licence
+## License
 This script is distributed under the [MIT License](https://github.com/keshon/traefik-docker-compose-generator/blob/main/LICENSE).
