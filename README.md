@@ -1,6 +1,9 @@
-# Traefik docker-compose generator
+# Traefik + Dashboard + Certs Exporter as generated compose files
 
-Generator for Traefik Proxy `docker-compose.yml` file with **custom TCP/UDP ports** mapping.  
+Pure shell script `docker-compose.yml` generator for Traefik Proxy supporting:
+- **custom TCP/UDP ports** mapping
+- **basic auth** for dashboard (optional)
+- **export domains certificates**
 
 In other words no manual editing of docker-compose is needed. Just define your custom ports in the .env file, and the script will automatically generate all the necessary port mappings, entrypoints, and labels for you Traefik instance.
 
@@ -19,12 +22,18 @@ Rebuild `docker-compose.yml`:
 
 ```bash
 ./generate-compose.sh
-````
+```
 
 Generate auth and write it into `.env`:
 
 ```bash
 ./generate-auth.sh
+```
+
+Export all certificates from `acme.json`:
+
+```bash
+./export-certs.sh
 ```
 
 ## Usage
@@ -56,9 +65,10 @@ Generate auth and write it into `.env`:
 
 3. The script will:
 
-    * generate `docker-compose.yml`
+    * generate Traefik `docker-compose.yml`
     * check that the `proxy` network exists (create it if not)
-    * call `./generate-auth.sh` if `LOGIN` or `PASSWORD_HASH` is missing
+    * call `./generate-auth.sh` if `DASHBOARD_LOGIN` or `DASHBOARD_PASSWORD_HASH` is missing in `.env`
+    * call `./export-certs.sh` to export certificates in flat hierarchy
     * restart Traefik
 
 ## Example: using new ports in services
