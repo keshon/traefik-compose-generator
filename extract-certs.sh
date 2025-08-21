@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+# extract-certs.sh - Extracts certificates from acme.json. Should be run inside Traefik container
 set -e
 
 ACME_FILE="/acme/acme.json"
