@@ -9,6 +9,13 @@ else
     exit 1
 fi
 
+# Check if --skip-restart option is provided
+SKIP_RESTART=false
+if [[ "$1" == "--skip-restart" ]]; then
+    SKIP_RESTART=true
+    shift
+fi
+
 # Check if openssl is available (usually present on most systems including Git Bash on Windows)
 if ! command -v openssl &> /dev/null; then
     echo "Error: 'openssl' is not available. This script requires OpenSSL."
@@ -112,3 +119,32 @@ echo ""
 echo "To test the auth:"
 echo "  curl -u '$username:$password' http://${DASHBOARD_HOSTNAME}"
 echo ""
+
+# Restart Traefik
+if ! $SKIP_RESTART; then
+    # Check if Docker is available
+    if command -v docker &> /dev/null; then
+        # Detect docker-compose flavor
+        if command -v docker-compose &> /dev/null; then
+            DOCKER_COMPOSE="docker-compose"
+            elif docker compose version &> /dev/null; then
+            DOCKER_COMPOSE="docker compose"
+        else
+            echo "❎ Docker found, but neither docker-compose nor docker compose available"
+            exit 1
+        fi
+        
+        echo "✅ Docker environment found ($DOCKER_COMPOSE)"
+        
+        echo "🔄 Restarting containers..."
+        $DOCKER_COMPOSE up -d --force-recreate
+        echo "✅ Traefik restarted successfully!"
+    else
+        echo "❎ Docker not found - skipping restart"
+        echo ""
+        echo "To restart manually run (depending on your version):"
+        echo "docker-compose down && docker-compose up -d"
+        echo "or"
+        echo "docker compose down && docker compose up -d"
+    fi
+fi

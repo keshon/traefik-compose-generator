@@ -33,6 +33,7 @@ Generate auth and write it into `.env`:
 
    ```ini
    TZ=Europe/Amsterdam
+   DATA_DIR=./traefik-data
    LOG_LEVEL=WARN
    LETSENCRYPT_EMAIL=you@example.com
 
