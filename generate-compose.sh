@@ -1,6 +1,10 @@
 #!/bin/bash
 # generate-compose.sh - Generates Traefik docker-compose with ports from .env
 
+echo "------------------------------"
+echo "Traefik Docker Compose Generator"
+echo "------------------------------"
+
 # Load .env variables
 if [ -f .env ]; then
     source .env
@@ -169,12 +173,12 @@ services:
             - traefik
         environment:
             - TZ=\${TZ}
-        working_dir: /app
+        working_dir: /
         volumes:
             - ./extract-certs.sh:/extract-certs.sh:ro
             - \${DATA_DIR}/acme:/acme:ro
             - \${DATA_DIR}/certs:/certs
-        entrypoint: ["/bin/sh", "-c", "sh /extract-certs.sh"]
+        entrypoint: ["/bin/sh", "-c", "sh /extract-certs.sh --watch"]
 EOF
 
 echo "✅ docker-compose.certs.yml generated for Traefik certs exporter"

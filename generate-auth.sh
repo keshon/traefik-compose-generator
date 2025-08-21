@@ -1,6 +1,10 @@
 #!/bin/bash
 # generate-auth.sh - Pure bash password hash generator (no dependencies)
 
+echo "------------------------------"
+echo "Traefik Basic Auth Generator"
+echo "------------------------------"
+
 # Load .env variables
 if [ -f .env ]; then
     source .env
