@@ -21,10 +21,12 @@ COMPOSE_OVERRIDE="docker-compose.override.yml"
 COMPOSE_CERTS="docker-compose.certs.yml"
 COMPOSE_LOGROTATE="docker-compose.logrotate.yml"
 
-# Load .env variables
+# -------------------------------
+# Ensure .env file exists
+# -------------------------------
 if [ -f .env ]; then
     # shellcheck source=/dev/null
-    . .env
+    . ./.env
 else
     echo ".env file not found. Please create it from .env.example"
     exit 1

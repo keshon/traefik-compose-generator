@@ -1,37 +1,51 @@
 #!/bin/sh
-# set-basic-auth.sh - Pure shell password hash generator (no dependencies)
+# traefik-basic-auth.sh - Pure shell password hash generator (no dependencies)
 
 echo "------------------------------"
 echo "Traefik Basic Auth Generator"
 echo "------------------------------"
 
-# Load .env variables
-if [ -f .env ]; then
-    . ./.env
-else
-    echo "Error: .env file not found. Please create it from .env.example"
-    exit 1
-fi
+# -------------------------------
+# Constants
+# -------------------------------
+DEFAULT_USERNAME="admin"
+PASSWORD_LENGTH=16
 
-# Check if --skip-restart option is provided
+# -------------------------------
+# Parse command line arguments
+# -------------------------------
 SKIP_RESTART=false
 if [ "$1" = "--skip-restart" ]; then
     SKIP_RESTART=true
     shift
 fi
 
-# Check if openssl is available
+# -------------------------------
+# Ensure .env file exists
+# -------------------------------
+if [ -f .env ]; then
+    # shellcheck source=/dev/null
+    . ./.env
+else
+    echo "Error: .env file not found. Please create it from .env.example"
+    exit 1
+fi
+
+# -------------------------------
+# Check dependencies
+# -------------------------------
 if ! command -v openssl >/dev/null 2>&1; then
     echo "Error: 'openssl' is not available. This script requires OpenSSL."
     exit 1
 fi
 
-# Function to generate a strong random password
+# -------------------------------
+# Helper functions
+# -------------------------------
 generate_password() {
-    openssl rand -base64 12 | tr -d "=+/" | cut -c1-16
+    openssl rand -base64 12 | tr -d "=+/" | cut -c1-$PASSWORD_LENGTH
 }
 
-# Function to generate APR1 MD5 hash (Apache compatible)
 apr1_hash() {
     PASSWORD="$1"
     SALT=$(openssl rand -base64 8 | tr -d "=+/" | cut -c1-8)
@@ -39,15 +53,13 @@ apr1_hash() {
     echo "\$apr1\$${SALT}\$${HASH}"
 }
 
-echo "=== Traefik Basic Auth Generator ==="
-echo
-
-# Prompt for username
-printf "Enter username (default: admin): "
+# -------------------------------
+# Collect user input
+# -------------------------------
+printf "Enter username (default: %s): " "$DEFAULT_USERNAME"
 read username
-username=${username:-admin}
+username=${username:-$DEFAULT_USERNAME}
 
-# Prompt for password
 printf "Enter password (leave empty to auto-generate): "
 stty -echo
 read password
@@ -59,11 +71,11 @@ if [ -z "$password" ]; then
     echo "Generated password: $password"
 fi
 
-# Generate hash
+# -------------------------------
+# Generate authentication hash
+# -------------------------------
 echo "Generating hash..."
 hashed_password=$(apr1_hash "$password")
-
-# Escape $ characters for Docker
 escaped_hash=$(echo "$hashed_password" | sed 's/\$/\$\$/g')
 
 echo
@@ -74,7 +86,9 @@ echo "Hash: $hashed_password"
 echo "Escaped for Docker: $escaped_hash"
 echo
 
-# Save to .env file (optional)
+# -------------------------------
+# Save to .env file
+# -------------------------------
 printf "Save to .env file? (y/N): "
 read save
 case "$save" in
@@ -91,7 +105,7 @@ case "$save" in
         else
             echo "DASHBOARD_PASSWORD_HASH=$escaped_hash" >> .env
         fi
-        echo "Updated .env file successfully!"
+        echo "Credentials saved to .env file"
         ;;
 esac
 
@@ -100,7 +114,9 @@ echo "To test the auth:"
 echo "  curl -u '$username:$password' http://${DASHBOARD_HOSTNAME}"
 echo
 
-# Restart Traefik
+# -------------------------------
+# Docker restart logic
+# -------------------------------
 if [ "$SKIP_RESTART" = false ]; then
     if command -v docker >/dev/null 2>&1; then
         if command -v docker-compose >/dev/null 2>&1; then
@@ -111,15 +127,14 @@ if [ "$SKIP_RESTART" = false ]; then
             echo "Docker found, but neither docker-compose nor docker compose available"
             exit 1
         fi
+        
         echo "Docker environment found ($DOCKER_COMPOSE)"
         echo "Restarting containers..."
         $DOCKER_COMPOSE up -d --force-recreate
-        echo "Traefik restarted successfully!"
+        echo "Traefik restarted successfully"
     else
         echo "Docker not found - skipping restart"
-        echo "To restart manually run:"
-        echo "docker-compose down && docker-compose up -d"
-        echo "or"
-        echo "docker compose down && docker compose up -d"
+        echo "To restart manually:"
+        echo "  $DOCKER_COMPOSE down && $DOCKER_COMPOSE up -d"
     fi
 fi

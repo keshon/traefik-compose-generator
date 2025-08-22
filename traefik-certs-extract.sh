@@ -1,36 +1,49 @@
 #!/bin/sh
-# certs-extact.sh - Extracts certificates from Traefik acme.json
-set -e
+# traefik-certs-extract.sh - Extracts certificates from Traefik acme.json
 
 echo "------------------------------"
 echo "Traefik Certificate Extractor"
 echo "------------------------------"
 
-# Load .env variables
-if [ -f .env ]; then
-    source .env
-else
-    echo ".env file not found"
-fi
-
-# Check DATA_DIR
-if [[ -z "$DATA_DIR" ]]; then
-    echo "DATA_DIR is not set in .env. Using current directory..."
-    DATA_DIR=.
-fi
-
+# -------------------------------
 # Constants
-ACME_FILE="$DATA_DIR/acme/acme.json"
-CERTS_DIR="$DATA_DIR/certs"
-WATCH_MODE=false
+# -------------------------------
+WATCH_INTERVAL=10
+SEARCH_RANGE=50
 
+# -------------------------------
 # Parse command line arguments
+# -------------------------------
+WATCH_MODE=false
 if [ "$1" = "--watch" ]; then
     WATCH_MODE=true
 fi
 
-# Ensure base CERTS_DIR exists
-if [[ ! -d "$CERTS_DIR" ]]; then
+# -------------------------------
+# Load environment variables
+# -------------------------------
+if [ -f .env ]; then
+    # shellcheck source=/dev/null
+    . ./.env
+else
+    echo ".env file not found"
+fi
+
+# -------------------------------
+# Set directory paths
+# -------------------------------
+if [ -z "$DATA_DIR" ]; then
+    echo "DATA_DIR is not set in .env. Using current directory..."
+    DATA_DIR=.
+fi
+
+ACME_FILE="$DATA_DIR/acme/acme.json"
+CERTS_DIR="$DATA_DIR/certs"
+
+# -------------------------------
+# Ensure certificates directory exists
+# -------------------------------
+if [ ! -d "$CERTS_DIR" ]; then
     echo "CERTS_DIR ($CERTS_DIR) not found → creating..."
     mkdir -p "$CERTS_DIR"
     echo "Created $CERTS_DIR"
@@ -42,7 +55,9 @@ echo "Mode:   $([ "$WATCH_MODE" = true ] && echo "Watch mode (--watch)" || echo 
 
 last_mtime=0
 
-# Function to decode base64 and write certificates
+# -------------------------------
+# Helper functions
+# -------------------------------
 decode_and_write() {
     domain="$1"
     key_b64="$2"
@@ -77,12 +92,11 @@ decode_and_write() {
     fi
 }
 
-# Simple and fast acme.json parser
 parse_acme_json() {
     local file="$1"
     local cert_count=0
     
-    echo "Parsing acme.json..."
+    echo "traefik-certs-extract.sh starting..."
     
     # Check if file exists
     if [ ! -f "$file" ]; then
@@ -90,11 +104,10 @@ parse_acme_json() {
         return 1
     fi
     
-    # Simple approach: search for lines with required data directly
+    # Find all lines containing domain names
     echo "Searching for certificates..."
     echo "---"
 	
-    # Find all lines containing "main" (domain names)
     local domains=$(grep -n '"main"[[:space:]]*:' "$file" | cut -d: -f1)
     
     if [ -z "$domains" ]; then
@@ -115,18 +128,16 @@ parse_acme_json() {
         
         echo "Domain:      $domain"
         
-        # Search for certificate and key within ±50 lines from domain
-        local start_line=$((line_num - 50))
-        local end_line=$((line_num + 50))
+        # Search for certificate and key within range
+        local start_line=$((line_num - SEARCH_RANGE))
+        local end_line=$((line_num + SEARCH_RANGE))
         
         if [ $start_line -lt 1 ]; then
             start_line=1
         fi
         
-        # Extract certificate
+        # Extract certificate and private key
         local cert=$(sed -n "${start_line},${end_line}p" "$file" | grep '"certificate"[[:space:]]*:' | head -1 | sed -n 's/.*"certificate"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-        
-        # Extract private key
         local key=$(sed -n "${start_line},${end_line}p" "$file" | grep '"key"[[:space:]]*:' | head -1 | sed -n 's/.*"key"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
         
         echo "Key:         $([ -n "$key" ] && echo "yes (${#key} chars)" || echo "no")"
@@ -156,7 +167,6 @@ parse_acme_json() {
         echo "No certificates were successfully extracted"
         echo "Fallback: searching for certificate patterns in entire file..."
         
-        # Alternative method: search entire file
         echo "Certificate lines found:"
         grep -n '"certificate"' "$file" | head -5
         echo "---"
@@ -169,7 +179,6 @@ parse_acme_json() {
     return 0
 }
 
-# Function to extract certificates once
 extract_certificates() {
     if [ -f "$ACME_FILE" ]; then
         echo "Processing $ACME_FILE..."
@@ -179,19 +188,21 @@ extract_certificates() {
         
         # Parse JSON and extract certificates
         if parse_acme_json "$ACME_FILE"; then
-            echo "Certificate extraction completed successfully"
+        echo "Certificate extraction completed successfully"
             return 0
         else
-            echo "Certificate extraction failed or no certificates found"
+        echo "Certificate extraction failed or no certificates found"
             return 1
         fi
     else
-        echo "File $ACME_FILE not found"
+        echo "acme.json not found: $ACME_FILE"
         return 1
     fi
 }
 
+# -------------------------------
 # Main execution logic
+# -------------------------------
 if [ "$WATCH_MODE" = true ]; then
     echo "Starting watch mode..."
     
@@ -200,10 +211,8 @@ if [ "$WATCH_MODE" = true ]; then
         if [ -f "$ACME_FILE" ]; then
             # Cross-platform way to get modification time
             if command -v stat >/dev/null 2>&1; then
-                # Linux/Windows with GNU coreutils or macOS
                 mtime=$(stat -c %Y "$ACME_FILE" 2>/dev/null || stat -f %m "$ACME_FILE" 2>/dev/null || echo 0)
             else
-                # Fallback for other systems
                 mtime=$(ls -l "$ACME_FILE" | awk '{print $6$7$8}' 2>/dev/null || echo 0)
             fi
             
@@ -216,7 +225,7 @@ if [ "$WATCH_MODE" = true ]; then
             echo "Waiting for $ACME_FILE to appear..."
         fi
         
-        sleep 10
+        sleep $WATCH_INTERVAL
     done
 else
     # Single run mode
@@ -224,7 +233,7 @@ else
         echo "Done!"
         exit 0
     else
-        echo "Extraction failed!"
+        echo "Certificate extraction failed"
         exit 1
     fi
 fi

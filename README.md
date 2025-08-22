@@ -21,19 +21,25 @@ These scripts make this process easier: just define your custom ports in .env, r
 Rebuild `docker-compose.yml`:
 
 ```bash
-./generate-compose.sh
+./build-n-run.sh
 ```
 
 Generate auth and write it into `.env`:
 
 ```bash
-./generate-auth.sh
+./traefik-basic-auth.sh
 ```
 
 Export all certificates from `acme.json`:
 
 ```bash
-./export-certs.sh
+./traefik-certs-extract.sh
+```
+
+Logrotate for Traefik:
+
+```bash
+./traefik-logrotate.sh
 ```
 
 ## Usage
@@ -43,8 +49,11 @@ Export all certificates from `acme.json`:
    ```ini
    TZ=Europe/Amsterdam
    DATA_DIR=./traefik-data
-   LOG_LEVEL=WARN
    LETSENCRYPT_EMAIL=you@example.com
+
+   LOG_LEVEL=WARN
+   LOG_ROTATE_MAX_BACKUPS=5
+   LOG_ROTATE_TRIGGER_SIZE=1M
 
    CUSTOM_PORTS=51227,58526,31223
 
@@ -60,16 +69,17 @@ Export all certificates from `acme.json`:
 2. Run the generator:
 
    ```bash
-   ./generate-compose.sh
+   ./build-n-run.sh
    ```
 
 3. The script will:
 
     * generate Traefik `docker-compose.yml`
     * check that the `proxy` network exists (create it if not)
-    * call `./generate-auth.sh` if `DASHBOARD_LOGIN` or `DASHBOARD_PASSWORD_HASH` is missing in `.env`
-    * call `./export-certs.sh` to export certificates in flat hierarchy
-    * restart Traefik
+    * call `./traefik-basic-auth.sh` if `DASHBOARD_LOGIN` or `DASHBOARD_PASSWORD_HASH` is missing in `.env`
+    * create docker-compose for certificates export
+    * create docker-compose for logrotate
+    * (re)restart Traefik
 
 ## Example: using new ports in services
 
