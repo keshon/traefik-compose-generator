@@ -40,17 +40,64 @@ if ! command -v openssl >/dev/null 2>&1; then
 fi
 
 # -------------------------------
+# Determine hash method
+# -------------------------------
+HASH_METHOD=""
+if command -v htpasswd >/dev/null 2>&1; then
+    HASH_METHOD="htpasswd"
+elif command -v python3 >/dev/null 2>&1 && python3 -c "import bcrypt" 2>/dev/null; then
+    HASH_METHOD="python3"
+else
+    echo "Warning: Neither htpasswd nor python3 with bcrypt module found."
+    echo "Falling back to OpenSSL MD5 (may not work with all Traefik configurations)"
+    HASH_METHOD="openssl"
+fi
+
+echo "Using hash method: $HASH_METHOD"
+
+# -------------------------------
 # Helper functions
 # -------------------------------
 generate_password() {
     openssl rand -base64 12 | tr -d "=+/" | cut -c1-$PASSWORD_LENGTH
 }
 
+# -------------------------------
+# Bcrypt hash using htpasswd (most reliable)
+# -------------------------------
+htpasswd_hash() {
+    USERNAME="$1"
+    PASSWORD="$2"
+    htpasswd -nbB "$USERNAME" "$PASSWORD" | cut -d: -f2
+}
+
+# -------------------------------
+# Bcrypt hash using Python3 (fallback)
+# -------------------------------
+python3_hash() {
+    PASSWORD="$1"
+    python3 -c "
+import bcrypt
+password = b'$PASSWORD'
+salt = bcrypt.gensalt(rounds=12)
+hash = bcrypt.hashpw(password, salt)
+print(hash.decode('utf-8'))
+"
+}
+
+# -------------------------------
+# APR1 MD5 hash using OpenSSL (last resort)
+# -------------------------------
 apr1_hash() {
     PASSWORD="$1"
     SALT=$(openssl rand -base64 8 | tr -d "=+/" | cut -c1-8)
-    HASH=$(echo -n "$PASSWORD$SALT" | openssl dgst -md5 | cut -d' ' -f2)
-    echo "\$apr1\$${SALT}\$${HASH}"
+    
+    # More robust APR1 implementation
+    HASH=$(printf '%s%s%s' "$PASSWORD" '$apr1$' "$SALT" | openssl dgst -md5 -binary | openssl base64 | tr -d '\n' | sed 's/=*$//')
+    
+    # Simplified version - may work better
+    SIMPLE_HASH=$(echo -n "${PASSWORD}${SALT}" | openssl dgst -md5 | cut -d' ' -f2)
+    echo "\$apr1\$${SALT}\$${SIMPLE_HASH}"
 }
 
 # -------------------------------
@@ -74,8 +121,20 @@ fi
 # -------------------------------
 # Generate authentication hash
 # -------------------------------
-echo "Generating hash..."
-hashed_password=$(apr1_hash "$password")
+echo "Generating hash using $HASH_METHOD..."
+
+case "$HASH_METHOD" in
+    "htpasswd")
+        hashed_password=$(htpasswd_hash "$username" "$password")
+        ;;
+    "python3")
+        hashed_password=$(python3_hash "$password")
+        ;;
+    *)
+        hashed_password=$(apr1_hash "$password")
+        ;;
+esac
+
 escaped_hash=$(echo "$hashed_password" | sed 's/\$/\$\$/g')
 
 echo
@@ -84,6 +143,24 @@ echo "Username: $username"
 echo "Password: $password"
 echo "Hash: $hashed_password"
 echo "Escaped for Docker: $escaped_hash"
+echo
+
+# -------------------------------
+# Generate Traefik label format
+# -------------------------------
+echo "For Traefik labels:"
+echo "  - \"traefik.http.middlewares.auth.basicauth.users=$username:$escaped_hash\""
+echo
+
+# -------------------------------
+# Check hash format
+# -------------------------------
+case "$hashed_password" in
+    \$2[aby]\$*) echo "Using bcrypt hash (recommended)" ;;
+    \$apr1\$*) echo "Using APR1 MD5 hash (may have compatibility issues)" ;;
+    *) echo "Unknown hash format" ;;
+esac
+
 echo
 
 # -------------------------------
@@ -109,9 +186,20 @@ case "$save" in
         ;;
 esac
 
+# -------------------------------
+# Display test instructions
+# -------------------------------
 echo
 echo "To test the auth:"
-echo "  curl -u '$username:$password' http://${DASHBOARD_HOSTNAME}"
+echo "  curl -u '$username:$password' https://${DASHBOARD_HOSTNAME}"
+echo
+
+echo "=== Debug Information ==="
+echo "If authentication still fails, check:"
+echo "1. Traefik configuration uses the correct middleware"
+echo "2. The hash is properly escaped in docker-compose.yml"
+echo "3. Container has been restarted after configuration change"
+echo "4. Dashboard URL ends with trailing slash (/dashboard/)"
 echo
 
 # -------------------------------
@@ -129,9 +217,19 @@ if [ "$SKIP_RESTART" = false ]; then
         fi
         
         echo "Docker environment found ($DOCKER_COMPOSE)"
-        echo "Restarting containers..."
-        $DOCKER_COMPOSE up -d --force-recreate
-        echo "Traefik restarted successfully"
+        printf "Restart containers? (y/N): "
+        read restart
+        case "$restart" in
+            y|Y)
+                echo "Restarting containers..."
+                $DOCKER_COMPOSE up -d --force-recreate
+                echo "Traefik restarted successfully"
+                ;;
+            *)
+                echo "Skipping restart. To restart manually:"
+                echo "  $DOCKER_COMPOSE down && $DOCKER_COMPOSE up -d"
+                ;;
+        esac
     else
         echo "Docker not found - skipping restart"
         echo "To restart manually:"
