@@ -243,7 +243,7 @@ if command -v docker >/dev/null 2>&1; then
                     -f "$COMPOSE_CERTS" \
                     -f "$COMPOSE_LOGROTATE" up -d --force-recreate
 
-    echo "Traefik + dashboard + certs + logrotate exporter restarted successfully"
+    echo "Traefik + dashboard + certs exporter + logrotate restarted successfully"
 else
     echo "Docker not found - skipping restart"
 fi
