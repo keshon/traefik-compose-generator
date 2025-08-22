@@ -1,9 +1,10 @@
-# Traefik + Dashboard + Certs Exporter as generated compose files
+# Traefik + Dashboard + Certs Exporter + Logrotate as generated compose files
 
 Pure shell script `docker-compose.yml` generator for Traefik Proxy supporting:
 - **custom TCP/UDP ports** mapping
 - **basic auth** for dashboard (optional)
 - **export domains certificates**
+- **logrotate for logs**
 
 In other words no manual editing of docker-compose is needed. Just define your custom ports in the .env file, and the script will automatically generate all the necessary port mappings, entrypoints, and labels for you Traefik instance.
 
@@ -55,7 +56,7 @@ Logrotate for Traefik:
    LOG_ROTATE_MAX_BACKUPS=5
    LOG_ROTATE_TRIGGER_SIZE=1M
 
-   CUSTOM_PORTS=51227,58526,31223
+   CUSTOM_PORTS=51227 58526 31223
 
    # Alternative format:
    # CUSTOM_PORTS=51227,58526,31223
