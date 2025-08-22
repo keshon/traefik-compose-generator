@@ -1,5 +1,5 @@
 #!/bin/sh
-# extract-certs.sh - Extracts certificates from Traefik acme.json
+# certs-extact.sh - Extracts certificates from Traefik acme.json
 set -e
 
 echo "------------------------------"
@@ -10,12 +10,12 @@ echo "------------------------------"
 if [ -f .env ]; then
     source .env
 else
-    echo "⚠️ .env file not found"
+    echo ".env file not found"
 fi
 
 # Check DATA_DIR
 if [[ -z "$DATA_DIR" ]]; then
-    echo "⚠️ DATA_DIR is not set in .env. Using current directory..."
+    echo "DATA_DIR is not set in .env. Using current directory..."
     DATA_DIR=.
 fi
 
@@ -31,9 +31,9 @@ fi
 
 # Ensure base CERTS_DIR exists
 if [[ ! -d "$CERTS_DIR" ]]; then
-    echo "⚠️ CERTS_DIR ($CERTS_DIR) not found → creating..."
+    echo "CERTS_DIR ($CERTS_DIR) not found → creating..."
     mkdir -p "$CERTS_DIR"
-    echo "✅ Created $CERTS_DIR"
+    echo "Created $CERTS_DIR"
 fi
 
 echo "Input:  $ACME_FILE"
@@ -50,11 +50,11 @@ decode_and_write() {
     
     if [ -n "$domain" ] && [ -n "$key_b64" ] && [ -n "$cert_b64" ]; then
         echo "$key_b64" | base64 -d > "$CERTS_DIR/$domain.key" 2>/dev/null || {
-            echo "❎ Failed to decode key for $domain"
+            echo "Failed to decode key for $domain"
             return 1
         }
         echo "$cert_b64" | base64 -d > "$CERTS_DIR/$domain.crt" 2>/dev/null || {
-            echo "❎ Failed to decode certificate for $domain"
+            echo "Failed to decode certificate for $domain"
             return 1
         }
         
@@ -69,10 +69,10 @@ decode_and_write() {
             fi
         fi
         
-        echo "✅ Extracted successfully"
+        echo "Extracted successfully"
         return 0
     else
-        echo "❎ Missing data for domain: $domain"
+        echo "Missing data for domain: $domain"
         return 1
     fi
 }
@@ -86,7 +86,7 @@ parse_acme_json() {
     
     # Check if file exists
     if [ ! -f "$file" ]; then
-        echo "❎ File $file not found"
+        echo "File $file not found"
         return 1
     fi
     
@@ -98,7 +98,7 @@ parse_acme_json() {
     local domains=$(grep -n '"main"[[:space:]]*:' "$file" | cut -d: -f1)
     
     if [ -z "$domains" ]; then
-        echo "❎ No domains found"
+        echo "No domains found"
         return 1
     fi
     
@@ -109,7 +109,7 @@ parse_acme_json() {
         local domain=$(sed -n "${line_num}p" "$file" | sed -n 's/.*"main"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
         
         if [ -z "$domain" ]; then
-            echo "❎ Could not extract domain at line $line_num"
+            echo "Could not extract domain at line $line_num"
             continue
         fi
         
@@ -137,7 +137,7 @@ parse_acme_json() {
                 cert_count=$((cert_count + 1))
             fi
         else
-            echo "❎ Missing certificate or key data for $domain"
+            echo "Missing certificate or key data for $domain"
             
             # Additional diagnostics
             echo "Debug: Searching in lines ${start_line}-${end_line}"
@@ -153,8 +153,8 @@ parse_acme_json() {
     echo "Total certificates processed: $cert_count"
     
     if [ $cert_count -eq 0 ]; then
-        echo "❎ No certificates were successfully extracted"
-        echo "⚠️ Fallback: searching for certificate patterns in entire file..."
+        echo "No certificates were successfully extracted"
+        echo "Fallback: searching for certificate patterns in entire file..."
         
         # Alternative method: search entire file
         echo "Certificate lines found:"
@@ -179,21 +179,21 @@ extract_certificates() {
         
         # Parse JSON and extract certificates
         if parse_acme_json "$ACME_FILE"; then
-            echo "✅ Certificate extraction completed successfully"
+            echo "Certificate extraction completed successfully"
             return 0
         else
-            echo "❎ Certificate extraction failed or no certificates found"
+            echo "Certificate extraction failed or no certificates found"
             return 1
         fi
     else
-        echo "❎ File $ACME_FILE not found"
+        echo "File $ACME_FILE not found"
         return 1
     fi
 }
 
 # Main execution logic
 if [ "$WATCH_MODE" = true ]; then
-    echo "🔄 Starting watch mode..."
+    echo "Starting watch mode..."
     
     # Watch mode: monitor file changes
     while true; do
@@ -221,7 +221,7 @@ if [ "$WATCH_MODE" = true ]; then
 else
     # Single run mode
     if extract_certificates; then
-        echo "✅ Done!"
+        echo "Done!"
         exit 0
     else
         echo "Extraction failed!"
