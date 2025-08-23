@@ -114,31 +114,6 @@ labels:
   - "traefik.udp.services.app-58526.loadbalancer.server.port=58526"
 ```
 
-## FAQ
-
-**Traefik doesn’t listen on my custom ports**
-– Check `.env` and make sure `CUSTOM_PORTS` are set, then rerun the generator.
-– Verify that the ports aren’t taken by other containers or processes.
-
-**UDP doesn’t work but TCP does**
-– Check that `docker-compose.yml` has `- "$port:$port/udp"`.
-– Make sure your service actually listens on UDP.
-
-**ACME (Let’s Encrypt) fails**
-– Check `LETSENCRYPT_EMAIL` in `.env`.
-– Ports `80` and `443` must be open from outside (no firewall blocking).
-
-**Basic Auth doesn’t work**
-– Remove `DASHBOARD_LOGIN` and `DASHBOARD_PASSWORD_HASH` from `.env` and rerun the script (it’ll call `./generate-auth.sh`).
-– Check that `generate-auth.sh` exists and is executable (`chmod +x generate-auth.sh`).
-
-**`proxy` network missing**
-– The script creates it automatically. Or just do it manually:
-
-```bash
-docker network create proxy
-```
-
 ## Support
 For any questions, get support in ["The Megabyte Order"](https://discord.gg/NVtdTka8ZT) Discord server.
 
