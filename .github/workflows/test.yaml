@@ -20,6 +20,6 @@ jobs:
       - name: Compose validation
         run: |
           cp .env.example .env
-          sh build-n-run.sh validate
+          sh traefik.sh validate
           printf 'DASHBOARD_HOSTNAME=dashboard.example.com\nCERTS_EXPORT=true\n' >> .env
-          sh build-n-run.sh validate
+          sh traefik.sh validate

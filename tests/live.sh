@@ -11,7 +11,7 @@ command -v python3 >/dev/null 2>&1 || die 'Python 3 is required for live probes'
 test_port=$(printf '%s' "$CUSTOM_PORTS" | tr ',' ' ' | awk '{print $1}')
 [ -n "$test_port" ] || die 'Configure at least one unused CUSTOM_PORTS entry'
 valid_port CUSTOM_PORTS "$test_port"
-sh "$ROOT/build-n-run.sh" up
+sh "$ROOT/traefik.sh" up
 backend="$PROJECT_NAME-live-test-$$"
 unlabelled="$backend-unlabelled"
 cleanup() { docker rm -f "$backend" "$unlabelled" >/dev/null 2>&1 || true; }
@@ -47,7 +47,7 @@ status=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: $unlabelled" "http://1
 [ "$status" = 404 ] || die "Unlabelled backend became exposed: $status"
 printf 'PASS: unlabelled backend is not exposed\n'
 before=$(compose ps -q traefik)
-sh "$ROOT/build-n-run.sh" up
+sh "$ROOT/traefik.sh" up
 after=$(compose ps -q traefik)
 [ "$before" = "$after" ] || die 'Unchanged deployment recreated Traefik'
 printf 'PASS: repeated deployment preserves the Traefik container\n'

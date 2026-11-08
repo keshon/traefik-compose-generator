@@ -34,17 +34,17 @@ CUSTOM_PORTS="51227,58526"
 ENV
 }
 expect_failure() {
-    if sh ./build-n-run.sh "$1" > output 2>&1; then fail "Unexpected success: $2"; fi
+    if sh ./traefik.sh "$1" > output 2>&1; then fail "Unexpected success: $2"; fi
     pass "$2"
 }
 
 base_env
-sh ./build-n-run.sh generate > output
+sh ./traefik.sh generate > output
 grep -q 'TCP-51227_ADDRESS' compose.generated.yaml || fail 'Missing TCP port'
 grep -q '58526/udp' compose.generated.yaml || fail 'Missing UDP port'
 pass 'Comma-separated ports generate TCP and UDP mappings'
 printf 'CUSTOM_PORTS="51227 58526"\n' >> .env
-sh ./build-n-run.sh generate > output
+sh ./traefik.sh generate > output
 grep -q 'TCP-58526_ADDRESS' compose.generated.yaml || fail 'Space-separated ports'
 pass 'Space-separated ports work'
 
@@ -71,17 +71,17 @@ expect_failure generate 'Reject invalid hostname'
 
 base_env
 printf 'DASHBOARD_HOSTNAME=dashboard.example.com\n' >> .env
-sh ./build-n-run.sh generate > output
+sh ./traefik.sh generate > output
 grep -q 'basicauth.usersfile' compose.generated.yaml || fail 'Missing dashboard auth'
 printf 'DASHBOARD_HOSTNAME=\nCUSTOM_PORTS=\n' >> .env
-sh ./build-n-run.sh generate > output
+sh ./traefik.sh generate > output
 if grep -qE 'basicauth|51227|labels:' compose.generated.yaml; then fail 'Stale settings survived'; fi
 pass 'Disabling features removes stale dashboard and port configuration'
 
 base_env
 # shellcheck disable=SC2016
 printf '%s\n' 'TZ=$(touch INJECTED)' "DASHBOARD_PASSWORD_HASH='\$\$2y\$\$12\$\$literal'" >> .env
-sh ./build-n-run.sh generate > output
+sh ./traefik.sh generate > output
 [ ! -e INJECTED ] || fail 'Executed .env as shell code'
 pass '.env command substitution is never executed'
 EXPECTED_HASH='$$2y$$12$$literal' ENV_FILE="$work/.env" sh -c '. ./lib/common.sh; load_env; test "$DASHBOARD_PASSWORD_HASH" = "$EXPECTED_HASH"'
@@ -100,7 +100,7 @@ if grep -q 'network\|up -d' "$MOCK_LOG"; then fail 'Deployed invalid configurati
 pass 'Configuration is checked before Docker mutations'
 unset MOCK_CONFIG_STATUS
 base_env
-sh ./build-n-run.sh up > output
+sh ./traefik.sh up > output
 grep -q -- '--wait' "$MOCK_LOG" || fail 'Missing health wait'
 if grep -q -- '--force-recreate' "$MOCK_LOG"; then fail 'Unnecessary recreation'; fi
 pass 'Deployment waits for health without forced recreation'

@@ -16,19 +16,19 @@ For public HTTPS, set dashboard or application DNS to the server. Check both A a
 
 | Command | Effect |
 | --- | --- |
-| `sh build-n-run.sh generate` | Validate settings and replace `compose.generated.yaml`; no Docker calls |
-| `sh build-n-run.sh validate` | Generate the override and run `docker compose config --quiet` |
-| `sh build-n-run.sh up` | Validate, prepare storage and the external network, build the enabled exporter, and deploy with a health wait |
-| `sh build-n-run.sh status` | Show project containers |
-| `sh build-n-run.sh logs` | Show the last 100 log lines |
-| `sh build-n-run.sh down` | Remove project containers and their networks; retain the configured external network and bind-mounted data |
+| `sh traefik.sh generate` | Validate settings and replace `compose.generated.yaml`; no Docker calls |
+| `sh traefik.sh validate` | Generate the override and run `docker compose config --quiet` |
+| `sh traefik.sh up` | Validate, prepare storage and the external network, build the enabled exporter, and deploy with a health wait |
+| `sh traefik.sh status` | Show project containers |
+| `sh traefik.sh logs` | Show the last 100 log lines |
+| `sh traefik.sh down` | Remove project containers and their networks; retain the configured external network and bind-mounted data |
 
 With no argument, the wrapper runs `up`. Use the wrapper instead of bare `docker compose up`: it supplies both Compose files, the selected environment file, project name, and exporter profile. `down`, `status`, and `logs` require an existing generated override and still validate settings.
 
 Script paths resolve from the repository. Relative `DATA_DIR` paths are relative to that directory. Select another settings file through the process environment:
 
 ```sh
-ENV_FILE=/absolute/path/to/settings.env sh build-n-run.sh validate
+ENV_FILE=/absolute/path/to/settings.env sh traefik.sh validate
 ```
 
 `ENV_FILE` is not a setting inside `.env`. Values read from the selected file override environment variables with the same names; absent values use the existing environment or script defaults.
@@ -189,17 +189,17 @@ Back up the selected `.env` and the complete `DATA_DIR`; they identify the deplo
 For a consistent offline copy using the starter data path:
 
 ```sh
-sh build-n-run.sh down
+sh traefik.sh down
 cp -p .env .env.backup
 cp -a traefik-data traefik-data.backup
-sh build-n-run.sh up
+sh traefik.sh up
 ```
 
 Use new backup destinations. To restore, stop the project, copy the saved environment file and data directory back to their configured paths, retain their ownership and permissions, and run `validate`, then `up`. Container removal also removes Docker-managed container logs; retain required logs separately before `down`.
 
 ## Logging and Docker access
 
-Traefik writes JSON logs to stdout/stderr. Docker rotates them according to the log size and file-count settings. Use `sh build-n-run.sh logs` to inspect them. No log-rotation sidecar is used.
+Traefik writes JSON logs to stdout/stderr. Docker rotates them according to the log size and file-count settings. Use `sh traefik.sh logs` to inspect them. No log-rotation sidecar is used.
 
 The API's insecure access is disabled, Docker discovery is opt-in, and Traefik runs with reduced Linux capabilities. The internal ping entrypoint is not a public API endpoint. Traefik still mounts the Docker socket for discovery: a read-only bind mount does not restrict Docker API operations. Treat this as privileged access and use trusted images and host accounts.
 

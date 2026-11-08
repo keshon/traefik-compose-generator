@@ -13,14 +13,14 @@ Deploy Traefik with Docker discovery, custom TCP/UDP entrypoints, an optional da
 ```sh
 cp .env.example .env
 # Set LETSENCRYPT_EMAIL, CUSTOM_PORTS, and optionally DASHBOARD_HOSTNAME.
-sh build-n-run.sh generate
-sh build-n-run.sh validate
+sh traefik.sh generate
+sh traefik.sh validate
 
 # Only needed when DASHBOARD_HOSTNAME is set:
 sh traefik-basic-auth.sh --username admin --generate
 
-sh build-n-run.sh up
-sh build-n-run.sh status
+sh traefik.sh up
+sh traefik.sh status
 ```
 
 When enabled, open `https://YOUR_HOST/dashboard/`. Log in with the username chosen above and the complete generated password from `${DATA_DIR}/auth/dashboard-password.txt`. This is a random hexadecimal password, not the bcrypt hash stored in `dashboard.htpasswd`. See [dashboard credentials](docs/running.md#dashboard-credentials) for retrieval, custom passwords, and rotation.

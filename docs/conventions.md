@@ -8,7 +8,7 @@ See [running.md](running.md) for deployment and operation. Run contributor comma
 | --- | --- |
 | `lib/common.sh` | Allowed settings, literal environment-file parsing, deployment defaults, Compose invocation |
 | `compose.yaml` | Service definitions, mounts, health check, logging, exporter profile |
-| `build-n-run.sh` | Settings validation, generated entrypoints and dashboard labels, deployment lifecycle |
+| `traefik.sh` | Settings validation, generated entrypoints and dashboard labels, deployment lifecycle |
 | `traefik-basic-auth.sh` | Bcrypt credentials, password input modes, optional restart |
 | `traefik-certs-extract.sh` | Staged certificate/key export and retrying watcher |
 | `traefik-logrotate.sh` | Compatibility with legacy file logs |
@@ -42,7 +42,7 @@ Install ShellCheck, `jq`, OpenSSL, and Python 3 with bcrypt for the complete set
 Compose validation generates an override and needs Docker Compose, but does not start containers:
 
 ```sh
-ENV_FILE=/absolute/path/to/test-settings.env sh build-n-run.sh validate
+ENV_FILE=/absolute/path/to/test-settings.env sh traefik.sh validate
 ```
 
 Use a dedicated settings file for example validation. Do not overwrite a developer's `.env` to run checks.
