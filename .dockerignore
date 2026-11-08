@@ -1,0 +1,4 @@
+*
+!lib/
+!lib/common.sh
+!traefik-certs-extract.sh

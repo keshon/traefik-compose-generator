@@ -1,3 +1,8 @@
 .env
 *.yml
 /traefik-data
+compose.generated.yaml
+.compose.generated.*
+.env.*
+!.env.example
+node_modules/

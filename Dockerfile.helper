@@ -1,0 +1,5 @@
+FROM alpine:3.24.4
+RUN apk add --no-cache jq openssl
+WORKDIR /app
+COPY lib/common.sh /app/lib/common.sh
+COPY traefik-certs-extract.sh /app/traefik-certs-extract.sh

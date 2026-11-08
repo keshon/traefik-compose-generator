@@ -1,0 +1,70 @@
+services:
+  traefik:
+    image: ${TRAEFIK_IMAGE:-traefik:v3.7.17}
+    restart: unless-stopped
+    networks: [proxy]
+    ports:
+      - "${BIND_ADDRESS:-0.0.0.0}:${HTTP_PORT:-80}:80"
+      - "${BIND_ADDRESS:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+    environment:
+      TZ: ${TZ:-UTC}
+      TRAEFIK_API: "${DASHBOARD_ENABLED:-false}"
+      TRAEFIK_API_INSECURE: "false"
+      TRAEFIK_ENTRYPOINTS_HTTP_ADDRESS: ":80"
+      TRAEFIK_ENTRYPOINTS_HTTPS_ADDRESS: ":443"
+      TRAEFIK_PROVIDERS_DOCKER_ENDPOINT: unix:///var/run/docker.sock
+      TRAEFIK_PROVIDERS_DOCKER_NETWORK: ${PROXY_NETWORK:-proxy}
+      TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT: "false"
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL: ${LETSENCRYPT_EMAIL:?Set LETSENCRYPT_EMAIL}
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_STORAGE: /acme/acme.json
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_CASERVER: ${ACME_CA_SERVER:-https://acme-v02.api.letsencrypt.org/directory}
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_HTTPCHALLENGE_ENTRYPOINT: http
+      TRAEFIK_LOG_LEVEL: ${LOG_LEVEL:-WARN}
+      TRAEFIK_LOG_FORMAT: json
+      TRAEFIK_ACCESSLOG: "true"
+      TRAEFIK_ACCESSLOG_FORMAT: json
+      TRAEFIK_ACCESSLOG_BUFFERINGSIZE: "100"
+      TRAEFIK_PING: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${DATA_DIR:-./traefik-data}/acme:/acme
+      - ${DATA_DIR:-./traefik-data}/auth:/auth:ro
+    healthcheck:
+      test: [CMD, traefik, healthcheck, --ping]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "${LOG_ROTATE_TRIGGER_SIZE:-10m}"
+        max-file: "${LOG_ROTATE_MAX_BACKUPS:-5}"
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+
+  certs-exporter:
+    profiles: [certs]
+    image: ${HELPER_IMAGE:-traefik-compose-helper:local}
+    build:
+      context: .
+      dockerfile: Dockerfile.helper
+    restart: unless-stopped
+    network_mode: none
+    environment:
+      ACME_FILE: /acme/acme.json
+      CERTS_DIR: /certs
+      WATCH_INTERVAL: "10"
+    volumes:
+      - ${DATA_DIR:-./traefik-data}/acme:/acme:ro
+      - ${DATA_DIR:-./traefik-data}/certs:/certs
+    entrypoint: [sh, /app/traefik-certs-extract.sh, --watch]
+    logging: *logging
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}
