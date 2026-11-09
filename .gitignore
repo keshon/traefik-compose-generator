@@ -1,5 +1,4 @@
 .env
-*.yml
 /traefik-data
 compose.generated.yaml
 .compose.generated.*

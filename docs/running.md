@@ -35,6 +35,12 @@ ENV_FILE=/absolute/path/to/settings.env sh traefik.sh validate
 
 `up` replaces stale generated ports and dashboard labels, removes an exporter disabled since the previous deployment, and removes orphan project containers. It does not force Traefik recreation when its configuration and image are unchanged. Its health check verifies Traefik's internal ping endpoint. The exporter has no separate health check, and successful deployment does not establish public routing or certificate issuance.
 
+### Deployment files
+
+The maintained service configuration is `compose.yaml`; `traefik.sh` generates `compose.generated.yaml` beside it. Keep the selected `.env` and `DATA_DIR` as private deployment state. The source tree, `.env.example`, and helper scripts belong in version control; the generated override and runtime state do not.
+
+Earlier generators left `docker-compose.yml`, `docker-compose.override.yml`, `docker-compose.certs-extract.yml`, and `docker-compose.log-rotate.yml` in the repository directory. Once the old stack has been stopped and the current deployment verified, remove these obsolete files. The wrapper never reads them. Other YAML files are not globally ignored, so an accidentally recreated legacy configuration appears in `git status`.
+
 ## Configuration
 
 [.env.example](../.env.example) contains starter values, including example custom ports. It is not the complete default configuration. The tables below describe runtime defaults from [lib/common.sh](../lib/common.sh), the helper scripts, and [compose.yaml](../compose.yaml).
@@ -211,7 +217,7 @@ The legacy `traefik-logrotate.sh` operates only on existing file logs. It rename
 2. Keep the existing data path, custom ports, registration email, and hostname settings. Keep `DASHBOARD_LOGIN` aligned with the login you want to retain.
 3. Import an existing bcrypt hash with `sh traefik-basic-auth.sh --import-env`. This reads `DASHBOARD_PASSWORD_HASH` and normalizes Compose-escaped dollar signs. Invalid hashes, including output from the old homemade APR1 fallback, require fresh credentials. Importing a hash cannot recover its plaintext password or create a matching plaintext file; remove any previous `dashboard-password.txt` that belongs to different credentials.
 4. Stop the old stack with its original Compose files before starting the replacement. Older fixed container names differ from the new Compose-managed names. Retain the ACME data directory.
-5. Run `generate`, `validate`, and `up`. Old ignored `docker-compose*.yml` files are no longer used. Logging moves from `${DATA_DIR}/logs` to Docker-managed logs.
+5. Run `generate`, `validate`, and `up`, then remove obsolete files as described under [deployment files](#deployment-files). Logging moves from `${DATA_DIR}/logs` to Docker-managed logs.
 
 ## Troubleshooting
 
