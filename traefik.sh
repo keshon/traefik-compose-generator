@@ -41,7 +41,9 @@ for port in $ports; do
     valid_port CUSTOM_PORTS "$port"
     case "$seen" in *" $port "*) die "Duplicate custom port: $port" ;; esac
     case "$port" in 80|443|8080) die "Custom port $port conflicts with a built-in entrypoint" ;; esac
-    [ "$port" != "$HTTP_PORT" ] && [ "$port" != "$HTTPS_PORT" ] || die "Custom port $port conflicts with HTTP(S)"
+    if [ "$port" = "$HTTP_PORT" ] || [ "$port" = "$HTTPS_PORT" ]; then
+        die "Custom port $port conflicts with HTTP(S)"
+    fi
     seen="$seen$port "
 done
 

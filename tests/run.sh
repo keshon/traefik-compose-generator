@@ -131,7 +131,9 @@ head -c 2048 /dev/zero > "$MOCK_REOPEN_LOG"
 cp "$MOCK_REOPEN_LOG" original-log
 sh ./traefik-logrotate.sh > output
 cmp original-log data/logs/access.log.1 || fail 'Legacy rotation lost log data'
-[ -f "$MOCK_REOPEN_LOG" ] && [ ! -s "$MOCK_REOPEN_LOG" ] || fail 'Log was not reopened'
+if [ ! -f "$MOCK_REOPEN_LOG" ] || [ -s "$MOCK_REOPEN_LOG" ]; then
+    fail 'Log was not reopened'
+fi
 pass 'Legacy rotation renames logs before signalling reopen'
 cp original-log "$MOCK_REOPEN_LOG"
 export MOCK_SIGNAL_STATUS=1
