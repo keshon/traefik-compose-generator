@@ -58,8 +58,10 @@ Clearing `BACKUP_HOSTNAME` removes only a route created by this script.
 Before replacing a legacy deployment, save `.env`, `dynamic/`, the existing
 Compose files, and persistent data. Preserve the data mounts and project name.
 If an older deployment has a separate certificate dumper absent from this
-repository, plan its migration before using `sh traefik.sh up`, which removes orphan
-services. This guide does not migrate that service automatically.
+repository, preserve its service in `compose.local.yaml` and set
+`EXTRA_COMPOSE_FILE` to that file's absolute path. The wrapper loads it after
+the generated configuration, so the service remains managed during orphan
+cleanup. Keep its existing script, image, and certificate mounts.
 
 For an installation already managed by this generator:
 

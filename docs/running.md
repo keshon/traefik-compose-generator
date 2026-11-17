@@ -55,6 +55,7 @@ Use one `KEY=value` per line. Values are literal and do not expand other variabl
 | `TRAEFIK_IMAGE` | Pinned tag in `lib/common.sh` and `compose.yaml` | Traefik image; upgrade deliberately |
 | `HELPER_IMAGE` | `traefik-compose-helper:local` | Tag assigned to the locally built exporter image |
 | `PROJECT_NAME` | `traefik` | Compose project name; lowercase letters, digits, `_`, and `-`, starting with a letter or digit |
+| `EXTRA_COMPOSE_FILE` | Empty | Optional absolute path to a host-specific Compose override, loaded last; use it to retain additional services |
 | `PROXY_NETWORK` | `proxy` | External Docker network name; letters, digits, `_`, `.`, and `-`, starting with a letter or digit |
 | `CUSTOM_PORTS` | Empty | Space or comma separated ports; every port creates both TCP and UDP mappings |
 | `DASHBOARD_HOSTNAME` | Empty | Empty disables the dashboard; otherwise use a DNS hostname |

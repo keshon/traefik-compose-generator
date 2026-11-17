@@ -6,3 +6,4 @@ compose.generated.yaml
 !.env.example
 node_modules/
 dynamic/
+compose.local.yaml

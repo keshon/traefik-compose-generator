@@ -39,6 +39,14 @@ expect_failure() {
 }
 
 base_env
+printf 'services: {}\n' > compose.local.yaml
+printf 'EXTRA_COMPOSE_FILE=%s/compose.local.yaml\n' "$work" >> .env
+: > "$MOCK_LOG"
+sh ./traefik.sh validate > output
+grep -q -- "-f $work/compose.local.yaml config --quiet" "$MOCK_LOG" || fail 'Local services were omitted'
+pass 'Host-specific Compose services are included after generated configuration'
+
+base_env
 printf 'XRAY_MODE=true\nHTTPS_PORT=2053\nXRAY_TRUSTED_IPS=172.19.0.10/32\nDASHBOARD_HOSTNAME=dashboard.example.com\nBACKUP_HOSTNAME=backup.example.com\nXRAY_CERTS_DIR=/opt/xray/certs\n' >> .env
 sh ./traefik.sh generate > output
 grep -q 'PROXYPROTOCOL_TRUSTEDIPS: "172.19.0.10/32"' compose.generated.yaml || fail 'Missing trusted proxy peer'
