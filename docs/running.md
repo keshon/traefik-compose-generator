@@ -37,7 +37,7 @@ ENV_FILE=/absolute/path/to/settings.env sh traefik.sh validate
 
 ### Deployment files
 
-The maintained service configuration is `compose.yaml`; `traefik.sh` generates `compose.generated.yaml` beside it. Keep the selected `.env` and `DATA_DIR` as private deployment state. The source tree, `.env.example`, and helper scripts belong in version control; the generated override and runtime state do not.
+The maintained service configuration is `compose.yaml`; `traefik.sh` generates `compose.generated.yaml` beside it. Keep the selected `.env` and `DATA_DIR` as private deployment state. The source tree, `.env.example`, and helper scripts belong in version control; the generated override and runtime state do not. Keep `dynamic/` as private deployment state too; it contains generated and hand-maintained file-provider routes. See [VPS Backup and Xray](backup-xray.md) for that setup.
 
 Earlier generators left `docker-compose.yml`, `docker-compose.override.yml`, `docker-compose.certs-extract.yml`, and `docker-compose.log-rotate.yml` in the repository directory. Once the old stack has been stopped and the current deployment verified, remove these obsolete files. The wrapper never reads them. Other YAML files are not globally ignored, so an accidentally recreated legacy configuration appears in `git status`.
 
@@ -61,8 +61,14 @@ Use one `KEY=value` per line. Values are literal and do not expand other variabl
 | `DASHBOARD_LOGIN` | `admin` in the credential helper | Username used when `--username` is omitted |
 | `CERTS_EXPORT` | `false` | Accepts `true` or `false`; enables or removes the exporter on `up` |
 | `HTTP_PORT` | `80` | Host port mapped to internal HTTP port 80 |
-| `HTTPS_PORT` | `443` | Host port mapped to internal HTTPS port 443 and dashboard redirect destination |
-| `BIND_ADDRESS` | `0.0.0.0` | IPv4 address on which host ports are published |
+| `HTTPS_PORT` | `443`, or `2053` in Xray mode | Host HTTPS listener; Xray mode uses internal 8443 and redirects to public 443 |
+| `BIND_ADDRESS` | `0.0.0.0` | Host port bindings; Xray mode always binds its HTTPS host listener to loopback |
+| `XRAY_MODE` | `false` | Xray owns public 443; publish Traefik HTTPS on loopback and internal port 8443 |
+| `XRAY_TRUSTED_IPS` | Empty | Required in Xray mode; private IPv4 peers/CIDRs trusted for PROXY protocol |
+| `XRAY_CERTS_DIR` | Empty | Optional absolute host directory mounted read-only at `/certs` |
+| `BACKUP_HOSTNAME` | Empty | Enables generated `dynamic/vps-backup.yml`; empty removes only a generated route |
+| `BACKUP_BACKEND_URL` | `http://172.19.0.1:8787` | Private IPv4 host gateway URL; match the backup listener |
+| `HTTPS_READ_TIMEOUT` | `15m` with a backup hostname, otherwise `60s` | Request-read timeout on the shared HTTPS entrypoint |
 | `ACME_CA_SERVER` | Production URL in `.env.example` | HTTPS ACME directory URL |
 | `LOG_LEVEL` | `WARN` | `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, or `PANIC` |
 | `LOG_ROTATE_TRIGGER_SIZE` | `10m` | Positive integer plus `k`, `m`, or `g`; suffix is case-insensitive |
@@ -190,7 +196,7 @@ The exporter parses JSON objects with `jq`, validates certificate/key correspond
 
 ### Backup and restore
 
-Back up the selected `.env` and the complete `DATA_DIR`; they identify the deployment and include ACME account credentials, private keys, and dashboard credentials. Store backups with restricted access.
+Back up the selected `.env`, `dynamic/`, and the complete `DATA_DIR`; they identify the deployment and include ACME account credentials, private keys, and dashboard credentials. Store backups with restricted access.
 
 For a consistent offline copy using the starter data path:
 
@@ -198,6 +204,8 @@ For a consistent offline copy using the starter data path:
 sh traefik.sh down
 cp -p .env .env.backup
 cp -a traefik-data traefik-data.backup
+# If file-provider routes are present:
+cp -a dynamic dynamic.backup
 sh traefik.sh up
 ```
 

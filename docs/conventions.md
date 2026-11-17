@@ -7,6 +7,7 @@ See [running.md](running.md) for deployment and operation. Run contributor comma
 | Source | Responsibility |
 | --- | --- |
 | `lib/common.sh` | Allowed settings, literal environment-file parsing, deployment defaults, Compose invocation |
+| `lib/routes.sh` | Backup route generation and Xray/host-gateway settings validation |
 | `compose.yaml` | Service definitions, mounts, health check, logging, exporter profile |
 | `traefik.sh` | Settings validation, generated entrypoints and dashboard labels, deployment lifecycle |
 | `traefik-basic-auth.sh` | Bcrypt credentials, password input modes, optional restart |
@@ -79,6 +80,20 @@ python3 tests/dashboard.py dashboard.example.com ./traefik-data/auth
 This verifies the HTTP redirect, trusted HTTPS, and missing/wrong/correct credentials for `/dashboard/` and `/api/rawdata`. It connects to loopback by default while validating the supplied hostname. Use `--address SERVER_IP` for a remote endpoint and `--http-port` / `--https-port` for nondefault published ports. The credential-directory argument is a local path on the probing host.
 
 `--rotate` replaces the actual dashboard password, restarts Traefik, and checks that the old password stops working. Use it only when credential replacement and a service interruption are intended. `--allow-untrusted` skips certificate trust validation for isolated tests with Traefik's default certificate; omit it for public TLS verification.
+
+### Backup gateway and Xray protocol
+
+```sh
+python3 tests/backup.py
+```
+
+This opt-in test creates a separate Docker network, a disposable Traefik
+container with a random loopback port, and an in-memory host HTTP fixture.
+It verifies the standalone and Xray Compose models, authentication and upload
+contents over TLS with no PROXY header and with PROXY v1/v2, and file-provider
+reload. It uses Traefik's default certificate with verification disabled only
+inside the fixture. It does not run Xray itself or change the deployed stack.
+It needs Linux, Python 3, Docker Compose, and the configured Traefik image.
 
 ### HTTP, TCP, and UDP
 

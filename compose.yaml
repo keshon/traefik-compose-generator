@@ -5,13 +5,17 @@ services:
     networks: [proxy]
     ports:
       - "${BIND_ADDRESS:-0.0.0.0}:${HTTP_PORT:-80}:80"
-      - "${BIND_ADDRESS:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+      - "${HTTPS_BIND_ADDRESS:-0.0.0.0}:${HTTPS_PORT:-443}:${HTTPS_CONTAINER_PORT:-443}"
     environment:
       TZ: ${TZ:-UTC}
       TRAEFIK_API: "${DASHBOARD_ENABLED:-false}"
       TRAEFIK_API_INSECURE: "false"
       TRAEFIK_ENTRYPOINTS_HTTP_ADDRESS: ":80"
-      TRAEFIK_ENTRYPOINTS_HTTPS_ADDRESS: ":443"
+      TRAEFIK_ENTRYPOINTS_HTTPS_ADDRESS: ":${HTTPS_CONTAINER_PORT:-443}"
+      TRAEFIK_ENTRYPOINTS_HTTPS_TRANSPORT_RESPONDINGTIMEOUTS_READTIMEOUT: ${HTTPS_READ_TIMEOUT:-60s}
+      TRAEFIK_ENTRYPOINTS_HTTPS_TRANSPORT_RESPONDINGTIMEOUTS_WRITETIMEOUT: 0s
+      TRAEFIK_PROVIDERS_FILE_DIRECTORY: /dynamic
+      TRAEFIK_PROVIDERS_FILE_WATCH: "true"
       TRAEFIK_PROVIDERS_DOCKER_ENDPOINT: unix:///var/run/docker.sock
       TRAEFIK_PROVIDERS_DOCKER_NETWORK: ${PROXY_NETWORK:-proxy}
       TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT: "false"
@@ -26,6 +30,7 @@ services:
       TRAEFIK_ACCESSLOG_BUFFERINGSIZE: "100"
       TRAEFIK_PING: "true"
     volumes:
+      - ./dynamic:/dynamic:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${DATA_DIR:-./traefik-data}/acme:/acme
       - ${DATA_DIR:-./traefik-data}/auth:/auth:ro

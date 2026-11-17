@@ -23,3 +23,5 @@ jobs:
           sh traefik.sh validate
           printf 'DASHBOARD_HOSTNAME=dashboard.example.com\nCERTS_EXPORT=true\n' >> .env
           sh traefik.sh validate
+          printf 'XRAY_MODE=true\nHTTPS_PORT=2053\nXRAY_TRUSTED_IPS=172.19.0.10/32\nBACKUP_HOSTNAME=backup.example.com\n' >> .env
+          sh traefik.sh validate

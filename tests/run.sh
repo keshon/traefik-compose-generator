@@ -39,6 +39,43 @@ expect_failure() {
 }
 
 base_env
+printf 'XRAY_MODE=true\nHTTPS_PORT=2053\nXRAY_TRUSTED_IPS=172.19.0.10/32\nDASHBOARD_HOSTNAME=dashboard.example.com\nBACKUP_HOSTNAME=backup.example.com\nXRAY_CERTS_DIR=/opt/xray/certs\n' >> .env
+sh ./traefik.sh generate > output
+grep -q 'PROXYPROTOCOL_TRUSTEDIPS: "172.19.0.10/32"' compose.generated.yaml || fail 'Missing trusted proxy peer'
+# shellcheck disable=SC2016
+grep -q 'redirectscheme.port: "${PUBLIC_HTTPS_PORT}"' compose.generated.yaml || fail 'Dashboard redirects to private port'
+grep -q '/opt/xray/certs:/certs:ro' compose.generated.yaml || fail 'Shared certificates are not mounted'
+grep -q 'backup.example.com' dynamic/vps-backup.yml || fail 'Missing backup route'
+grep -q 'http://172.19.0.1:8787' dynamic/vps-backup.yml || fail 'Wrong backup backend'
+pass 'Xray settings generate trusted proxy, public redirect, shared certificates and backup route'
+base_env
+sh ./traefik.sh generate > output
+[ ! -e dynamic/vps-backup.yml ] || fail 'Disabled backup route survived'
+if grep -q 'PROXYPROTOCOL' compose.generated.yaml; then fail 'Disabled Xray mode survived'; fi
+pass 'Disabling generated features removes their configuration'
+printf '# Hand maintained\nhttp: {}\n' > dynamic/vps-backup.yml
+cp dynamic/vps-backup.yml original-route
+printf 'BACKUP_HOSTNAME=backup.example.com\n' >> .env
+expect_failure generate 'Hand-maintained backup route is not overwritten'
+cmp original-route dynamic/vps-backup.yml || fail 'Destroyed administrator route'
+rm dynamic/vps-backup.yml
+for setting in 'XRAY_MODE=maybe' 'XRAY_MODE=true' 'BACKUP_HOSTNAME=bad/host' 'BACKUP_HOSTNAME=backup.example.com
+BACKUP_BACKEND_URL=http://8.8.8.8:8787' 'BACKUP_HOSTNAME=backup.example.com
+BACKUP_BACKEND_URL=http://127.0.0.1:8787' 'HTTPS_READ_TIMEOUT=15m;false' 'XRAY_CERTS_DIR=/tmp/../certs'; do
+    base_env
+    printf '%s\n' "$setting" >> .env
+    expect_failure generate 'Invalid route/proxy setting rejected'
+done
+base_env
+printf 'XRAY_MODE=true\nHTTPS_PORT=443\nXRAY_TRUSTED_IPS=172.19.0.10/32\n' >> .env
+expect_failure generate 'Xray mode cannot compete for public 443'
+for peer in '0.0.0.0/0' '8.8.8.8/32' '172.19.0.10/99' '172.19.0.999' '172.19.0.10,garbage' '172.19.0.0/8' '192.168.0.0/8'; do
+    base_env
+    printf 'XRAY_MODE=true\nXRAY_TRUSTED_IPS=%s\n' "$peer" >> .env
+    expect_failure generate 'Invalid or public proxy trust rejected'
+done
+
+base_env
 sh ./traefik.sh generate > output
 grep -q 'TCP-51227_ADDRESS' compose.generated.yaml || fail 'Missing TCP port'
 grep -q '58526/udp' compose.generated.yaml || fail 'Missing UDP port'

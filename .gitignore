@@ -5,3 +5,4 @@ compose.generated.yaml
 .env.*
 !.env.example
 node_modules/
+dynamic/

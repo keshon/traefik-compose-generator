@@ -10,6 +10,9 @@ Deploy Traefik with Docker discovery, custom TCP/UDP entrypoints, an optional da
 
 ## Quick start
 
+If Xray already owns port 443, use the [Xray setup](docs/backup-xray.md) before
+deploying. The default configuration lets Traefik own public HTTPS.
+
 ```sh
 cp .env.example .env
 # Set LETSENCRYPT_EMAIL, CUSTOM_PORTS, and optionally DASHBOARD_HOSTNAME.
@@ -29,6 +32,7 @@ The tracked [compose.yaml](compose.yaml) defines the services. The wrapper repla
 
 ## Guides
 
+- [VPS Backup and Xray](docs/backup-xray.md): backup routes, private ports, and migration from a hand-maintained route.
 - [Running and operating Traefik](docs/running.md): configuration, commands, HTTP/HTTPS and TCP/UDP routing, credentials, certificate export, backup, migration, and troubleshooting.
 - [Development and verification](docs/conventions.md): source ownership, local checks, CI coverage, and tests that create or restart containers.
 - [.env.example](.env.example): copyable starter settings. Runtime defaults are defined in [lib/common.sh](lib/common.sh).
